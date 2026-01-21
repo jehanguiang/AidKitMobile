@@ -27,6 +27,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.ui.draw.clip
+import com.jehan.aidkitmobile.interfaces.AskRequest
 import androidx.compose.foundation.background
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -55,7 +67,42 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             AidKitMobileTheme {
-                MedicationScreen()
+                MainScreen()
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreen() {
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabs = listOf("Medications", "Ask AI")
+    var chatMessages by remember { mutableStateOf<List<ChatMessage>>(emptyList()) }
+
+    Scaffold(
+        topBar = {
+            Column {
+                TopAppBar(title = { Text("Aid Kit") })
+                TabRow(selectedTabIndex = selectedTab) {
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = { Text(title) }
+                        )
+                    }
+                }
+            }
+        }
+    ) { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding)) {
+            when (selectedTab) {
+                0 -> MedicationScreen()
+                1 -> ChatScreen(
+                    messages = chatMessages,
+                    onMessagesChange = { chatMessages = it }
+                )
             }
         }
     }
@@ -90,37 +137,34 @@ fun MedicationScreen() {
         }
     }
 
+    if (showAddDialog) {
+        AddMedicationDialog(
+            onDismiss = { showAddDialog = false },
+            onAdd = { newMedication ->
+                scope.launch {
+                    try {
+                        val response = RetrofitClient.medicationApi.create(newMedication)
+                        if (response.isSuccessful) {
+                            response.body()?.let { medications = medications + it }
+                        } else {
+                            android.util.Log.e("MedicationApi", "Create failed: ${response.code()}")
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("MedicationApi", "Create error: ${e.message}")
+                    }
+                    showAddDialog = false
+                }
+            }
+        )
+    }
+
     Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Aid Kit") })
-        },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
                 Icon(Icons.Default.Add, contentDescription = "Add medication")
             }
         }
     ) { innerPadding ->
-
-        if (showAddDialog) {
-            AddMedicationDialog(
-                onDismiss = { showAddDialog = false },
-                onAdd = { newMedication ->
-                    scope.launch {
-                        try {
-                            val response = RetrofitClient.medicationApi.create(newMedication)
-                            if (response.isSuccessful) {
-                                response.body()?.let { medications = medications + it }
-                            } else {
-                                android.util.Log.e("MedicationApi", "Create failed: ${response.code()}")
-                            }
-                        } catch (e: Exception) {
-                            android.util.Log.e("MedicationApi", "Create error: ${e.message}")
-                        }
-                        showAddDialog = false
-                    }
-                }
-            )
-        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -360,6 +404,151 @@ fun MedicationCard(medication: Medication) {
                     color = MaterialTheme.colorScheme.outline
                 )
             }
+        }
+    }
+}
+
+data class ChatMessage(
+    val content: String,
+    val isUser: Boolean
+)
+
+@Composable
+fun ChatScreen(
+    messages: List<ChatMessage>,
+    onMessagesChange: (List<ChatMessage>) -> Unit
+) {
+    var inputText by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding()
+    ) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            item {
+                Text(
+                    text = "Ask questions about your medications",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
+            }
+            items(messages) { message ->
+                ChatBubble(message = message)
+            }
+            if (isLoading) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = inputText,
+                onValueChange = { inputText = it },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Ask about medications...") },
+                singleLine = true,
+                shape = RoundedCornerShape(24.dp)
+            )
+            IconButton(
+                onClick = {
+                    if (inputText.isNotBlank() && !isLoading) {
+                        val question = inputText
+                        inputText = ""
+                        onMessagesChange(messages + ChatMessage(question, isUser = true))
+                        isLoading = true
+
+                        scope.launch {
+                            try {
+                                val response = RetrofitClient.aiApi.askAboutMedication(AskRequest(question))
+                                if (response.isSuccessful) {
+                                    val answer = response.body() ?: "No response"
+                                    onMessagesChange(messages + ChatMessage(question, isUser = true) + ChatMessage(answer, isUser = false))
+                                } else {
+                                    onMessagesChange(messages + ChatMessage(question, isUser = true) + ChatMessage("Error: ${response.code()}", isUser = false))
+                                }
+                            } catch (e: Exception) {
+                                onMessagesChange(messages + ChatMessage(question, isUser = true) + ChatMessage("Error: ${e.message}", isUser = false))
+                            } finally {
+                                isLoading = false
+                            }
+                        }
+                    }
+                },
+                enabled = inputText.isNotBlank() && !isLoading
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Send",
+                    tint = if (inputText.isNotBlank() && !isLoading)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.outline
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ChatBubble(message: ChatMessage) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
+    ) {
+        Surface(
+            shape = RoundedCornerShape(
+                topStart = 16.dp,
+                topEnd = 16.dp,
+                bottomStart = if (message.isUser) 16.dp else 4.dp,
+                bottomEnd = if (message.isUser) 4.dp else 16.dp
+            ),
+            color = if (message.isUser)
+                MaterialTheme.colorScheme.primary
+            else
+                MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.widthIn(max = 300.dp)
+        ) {
+            Text(
+                text = message.content,
+                modifier = Modifier.padding(12.dp),
+                color = if (message.isUser)
+                    MaterialTheme.colorScheme.onPrimary
+                else
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
