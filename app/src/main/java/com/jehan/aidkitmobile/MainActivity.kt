@@ -37,12 +37,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.ui.draw.clip
 import com.jehan.aidkitmobile.interfaces.AskRequest
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.SwipeToDismissBox
@@ -87,6 +89,7 @@ fun MainScreen() {
     var chatMessages by remember { mutableStateOf<List<ChatMessage>>(emptyList()) }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Column {
                 TopAppBar(
@@ -95,19 +98,50 @@ fun MainScreen() {
                             Image(
                                 painter = painterResource(id = R.drawable.ic_launcher_round),
                                 contentDescription = "Logo",
-                                modifier = Modifier.size(40.dp)
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(8.dp))
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Aid Kit")
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                "Aid Kit",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                            )
                         }
-                    }
+                    },
+                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 )
-                TabRow(selectedTabIndex = selectedTab) {
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    indicator = { tabPositions ->
+                        androidx.compose.material3.TabRowDefaults.SecondaryIndicator(
+                            Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                            height = 3.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                ) {
                     tabs.forEachIndexed { index, title ->
                         Tab(
                             selected = selectedTab == index,
                             onClick = { selectedTab = index },
-                            text = { Text(title) }
+                            text = {
+                                Text(
+                                    title,
+                                    fontWeight = if (selectedTab == index)
+                                        androidx.compose.ui.text.font.FontWeight.Bold
+                                    else
+                                        androidx.compose.ui.text.font.FontWeight.Normal
+                                )
+                            },
+                            selectedContentColor = MaterialTheme.colorScheme.onPrimary,
+                            unselectedContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                         )
                     }
                 }
@@ -177,8 +211,14 @@ fun MedicationScreen() {
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = RoundedCornerShape(16.dp)
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Add medication")
             }
         }
@@ -193,10 +233,21 @@ fun MedicationScreen() {
                 onValueChange = { searchQuery = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("Search by name...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-                singleLine = true
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                placeholder = { Text("Search medications...") },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary
+                )
             )
 
             Box(
@@ -395,32 +446,72 @@ fun AddMedicationDialog(
 @Composable
 fun MedicationCard(medication: Medication) {
     Card(
-        modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = medication.name,
-                style = MaterialTheme.typography.titleMedium
-            )
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = medication.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                medication.expiryDate?.let {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = medication.purpose,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            medication.expiryDate?.let {
-                Text(
-                    text = "Expires: $it",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
-            }
             medication.sideEffects?.takeIf { it.isNotEmpty() }?.let { effects ->
-                Text(
-                    text = "Side effects: ${effects.joinToString(", ")}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    effects.take(3).forEach { effect ->
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                        ) {
+                            Text(
+                                text = effect,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                    if (effects.size > 3) {
+                        Text(
+                            text = "+${effects.size - 3}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
+                }
             }
         }
     }
@@ -450,6 +541,7 @@ fun ChatScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .imePadding()
     ) {
         LazyColumn(
@@ -458,15 +550,31 @@ fun ChatScreen(
                 .weight(1f)
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                Text(
-                    text = "Ask questions about your medications",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(vertical = 16.dp)
-                )
+                Column(
+                    modifier = Modifier.padding(vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    ) {
+                        Text(
+                            text = "🤖 AI Assistant",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Ask questions about your medications",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             items(messages) { message ->
                 ChatBubble(message = message)
@@ -477,64 +585,98 @@ fun ChatScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Start
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.padding(16.dp),
-                            strokeWidth = 2.dp
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    "Thinking...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp
         ) {
-            OutlinedTextField(
-                value = inputText,
-                onValueChange = { inputText = it },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Ask about medications...") },
-                singleLine = true,
-                shape = RoundedCornerShape(24.dp)
-            )
-            IconButton(
-                onClick = {
-                    if (inputText.isNotBlank() && !isLoading) {
-                        val question = inputText
-                        inputText = ""
-                        onMessagesChange(messages + ChatMessage(question, isUser = true))
-                        isLoading = true
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = inputText,
+                    onValueChange = { inputText = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Ask about medications...") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(24.dp),
+                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                        focusedBorderColor = MaterialTheme.colorScheme.primary
+                    )
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                FloatingActionButton(
+                    onClick = {
+                        if (inputText.isNotBlank() && !isLoading) {
+                            val question = inputText
+                            inputText = ""
+                            onMessagesChange(messages + ChatMessage(question, isUser = true))
+                            isLoading = true
 
-                        scope.launch {
-                            try {
-                                val response = RetrofitClient.aiApi.askAboutMedication(AskRequest(question))
-                                if (response.isSuccessful) {
-                                    val answer = response.body() ?: "No response"
-                                    onMessagesChange(messages + ChatMessage(question, isUser = true) + ChatMessage(answer, isUser = false))
-                                } else {
-                                    onMessagesChange(messages + ChatMessage(question, isUser = true) + ChatMessage("Error: ${response.code()}", isUser = false))
+                            scope.launch {
+                                try {
+                                    val response = RetrofitClient.aiApi.askAboutMedication(AskRequest(question))
+                                    if (response.isSuccessful) {
+                                        val answer = response.body() ?: "No response"
+                                        onMessagesChange(messages + ChatMessage(question, isUser = true) + ChatMessage(answer, isUser = false))
+                                    } else {
+                                        onMessagesChange(messages + ChatMessage(question, isUser = true) + ChatMessage("Error: ${response.code()}", isUser = false))
+                                    }
+                                } catch (e: Exception) {
+                                    onMessagesChange(messages + ChatMessage(question, isUser = true) + ChatMessage("Error: ${e.message}", isUser = false))
+                                } finally {
+                                    isLoading = false
                                 }
-                            } catch (e: Exception) {
-                                onMessagesChange(messages + ChatMessage(question, isUser = true) + ChatMessage("Error: ${e.message}", isUser = false))
-                            } finally {
-                                isLoading = false
                             }
                         }
-                    }
-                },
-                enabled = inputText.isNotBlank() && !isLoading
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Send",
-                    tint = if (inputText.isNotBlank() && !isLoading)
+                    },
+                    modifier = Modifier.size(48.dp),
+                    containerColor = if (inputText.isNotBlank() && !isLoading)
                         MaterialTheme.colorScheme.primary
                     else
-                        MaterialTheme.colorScheme.outline
-                )
+                        MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (inputText.isNotBlank() && !isLoading)
+                        MaterialTheme.colorScheme.onPrimary
+                    else
+                        MaterialTheme.colorScheme.outline,
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Send",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }
