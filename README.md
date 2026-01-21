@@ -92,6 +92,9 @@ The app communicates with a Spring Boot backend:
 | DELETE | `/api/medications/{id}` | Delete a medication |
 | POST | `/api/ai/ask/medication` | Ask AI about medications |
 
+## 📸 Screenshots
+
+![img.png](MedicationsList.png) ![img.png](Chat.png)
 
 ## 🏗️ Architecture Decisions
 
