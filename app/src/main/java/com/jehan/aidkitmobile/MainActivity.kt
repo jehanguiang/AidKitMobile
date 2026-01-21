@@ -39,7 +39,12 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.ui.draw.clip
 import com.jehan.aidkitmobile.interfaces.AskRequest
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -57,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.jehan.aidkitmobile.R
 import com.jehan.aidkitmobile.models.Medication
 import com.jehan.aidkitmobile.network.RetrofitClient
 import com.jehan.aidkitmobile.ui.theme.AidKitMobileTheme
@@ -83,7 +89,19 @@ fun MainScreen() {
     Scaffold(
         topBar = {
             Column {
-                TopAppBar(title = { Text("Aid Kit") })
+                TopAppBar(
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_launcher_round),
+                                contentDescription = "Logo",
+                                modifier = Modifier.size(40.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Aid Kit")
+                        }
+                    }
+                )
                 TabRow(selectedTabIndex = selectedTab) {
                     tabs.forEachIndexed { index, title ->
                         Tab(
