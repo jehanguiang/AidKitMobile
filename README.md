@@ -103,6 +103,9 @@ The app communicates with a Spring Boot backend:
 - **Coroutines** - All network calls use Kotlin coroutines with suspend functions
 - **Material 3** - Latest Material Design components and theming
 
+## TODO:
+- Create a reminders to take certain pills. It should be in a seperate tab.
+
 ## 📄 License
 
 This project is available for viewing and educational purposes.
